@@ -19,7 +19,7 @@ while user_input.lower() != "exit":
     user_input = input("Query: ")
     if user_input.lower() == "exit":
         break
-
+ 
     cur_query = Response(user_input)
     moder_result = cur_query.moderator_setup
 

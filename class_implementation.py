@@ -4,81 +4,55 @@ from io import StringIO
 import os
 from dotenv import load_dotenv, find_dotenv
 from openai import AzureOpenAI
-from pydantic import BaseModel, ValidationError
-
-
-class Settings(BaseModel):
-    CONTENT_MODERATOR_ENDPOINT: str
-    CONTENT_MODERATOR_KEY: str
-    AZURE_ENDPOINT: str
-    AZURE_RESOURCE_KEY: str
-    AZURE_OPENAI_DEPLOYMENT_NAME: str
-    AZURE_OPENAI_API_KEY: str
-    AZURE_OPENAI_ENDPOINT: str
-
+from typing import Dict
 
 class Response:
+    """
+    A class to handle user queries by moderating the text and generating responses
+    using Azure Cognitive Services and OpenAI.
+
+    Attributes:
+        user_query (str): The query provided by the user.
+    """
+
     def __init__(self, query: str) -> None:
         """
-        Initialize the Response class with a user query and set up environment
-        variables.
+        Initialize the Response class with a user query and load environment variables.
 
         Args:
-            query (str): The user query.
+            query (str): The user's query.
         """
         self.user_query: str = query
         env_path = find_dotenv("config/.env")
         load_dotenv(env_path)
-        self.settings: Settings = self.load_settings()
         self.moderator_setup
 
-    def load_settings(self) -> Settings:
-        """
-        Load and validate settings from environment variables.
-
-        Returns:
-            Settings: Validated settings object.
-        """
-        try:
-            settings = Settings(
-                CONTENT_MODERATOR_ENDPOINT=os.getenv("CONTENT_MODERATOR_ENDPOINT"),
-                CONTENT_MODERATOR_KEY=os.getenv("CONTENT_MODERATOR_KEY"),
-                AZURE_ENDPOINT=os.getenv("AZURE_ENDPOINT"),
-                AZURE_RESOURCE_KEY=os.getenv("AZURE_RESOURCE_KEY"),
-                AZURE_OPENAI_DEPLOYMENT_NAME=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-                AZURE_OPENAI_API_KEY=os.getenv("AZURE_OPENAI_API_KEY"),
-                AZURE_OPENAI_ENDPOINT=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            )
-            return settings
-        except ValidationError as e:
-            print("Environment variables validation error:", e)
-            raise
-
     @property
-    def moderator_setup(self) -> dict:
+    def moderator_setup(self) -> Dict:
         """
-        Set up the content moderator client using environment variables.
+        Set up the content moderator by loading the necessary environment variables
+        and handling the user message.
 
         Returns:
-            dict: The moderation result as a dictionary.
+            Dict: The moderation result as a dictionary.
         """
-        self.moderator_endpoint: str = self.settings.CONTENT_MODERATOR_ENDPOINT
-        self.moderator_api_key: str = self.settings.CONTENT_MODERATOR_KEY
-        moderator_obj: dict = self.handle_user_message()
+        self.moderator_endpoint: str = os.getenv("CONTENT_MODERATOR_ENDPOINT")
+        self.moderator_api_key: str = os.getenv("CONTENT_MODERATOR_KEY")
+        moderator_obj: Dict = self.handle_user_message()
         return moderator_obj
 
-    def moderate_text(self, text: str) -> dict:
+    def moderate_text(self, text: str) -> Dict:
         """
-        Moderate the given text using the Azure Content Moderator.
+        Moderate the provided text using Azure Content Moderator.
 
         Args:
             text (str): The text to be moderated.
 
         Returns:
-            dict: The moderation response as a dictionary.
+            Dict: The moderation response as a dictionary.
         """
         client = ContentModeratorClient(
-            self.moderator_endpoint,
+            self.moderator_endpoint, 
             CognitiveServicesCredentials(self.moderator_api_key)
         )
         response = client.text_moderation.screen_text(
@@ -90,41 +64,42 @@ class Response:
         )
         return response.as_dict()
 
-    def handle_user_message(self) -> dict:
+    def handle_user_message(self) -> Dict:
         """
-        Handle the user message by moderating it.
+        Handle the user message by moderating the text and returning the result.
 
         Returns:
-            dict: The moderation result as a dictionary.
+            Dict: The moderation result as a dictionary.
         """
-        moderation_result: dict = self.moderate_text(self.user_query)
+        moderation_result: Dict = self.moderate_text(self.user_query)
         return moderation_result
 
     @property
     def chat_completion_setup(self) -> str:
         """
-        Set up the chat completion client using environment variables.
+        Set up the chat completion by loading the necessary environment variables
+        and generating a response using OpenAI.
 
         Returns:
-            str: The final chat completion response.
+            str: The final response from the chat completion.
         """
-        self.service_endpoint: str = self.settings.AZURE_ENDPOINT
-        self.api_key: str = self.settings.AZURE_RESOURCE_KEY
-        self.deployment: str = self.settings.AZURE_OPENAI_DEPLOYMENT_NAME
+        self.service_endpoint: str = os.getenv("AZURE_ENDPOINT")
+        self.api_key: str = os.getenv("AZURE_RESOURCE_KEY")
+        self.deployment: str = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
         self.chat_completion_client = AzureOpenAI(
-            api_key=self.settings.AZURE_OPENAI_API_KEY,
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
             api_version="2024-02-01",
-            azure_endpoint=self.settings.AZURE_OPENAI_ENDPOINT,
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
         )
         final_response: str = self.chat_completion()
         return final_response
 
     def chat_completion(self) -> str:
         """
-        Generate a chat completion based on the user query.
+        Generate a chat completion response using OpenAI.
 
         Returns:
-            str: The chat completion response.
+            str: The content of the completion response.
         """
         completion = self.chat_completion_client.chat.completions.create(
             model=self.deployment,
@@ -151,15 +126,7 @@ class Response:
                         "query_type": "simple",
                         "fields_mapping": {},
                         "in_scope": True,
-                        "role_information": '''You are an AI assistant designed
-                        to answer questions based solely on the provided dataset.
-                        Your responses must be accurate and strictly derived from
-                        the dataset. If a user asks a question not covered by the
-                        dataset, respond in a varied manner without referencing
-                        the dataset. Use variations such as: "I can't answer that.
-                        Please ask another question.", "Sorry, I can't help with
-                        that. Please ask something else.", "I don't have information
-                        on that. Could you ask a different question?"''',
+                        "role_information": '''You are an AI assistant designed to answer questions based solely on the provided dataset. Your responses must be accurate and strictly derived from the dataset. If a user asks a question not covered by the dataset, respond in a varied manner without referencing the dataset. Use variations such as: "I can't answer that. Please ask another question.", "Sorry, I can't help with that. Please ask something else.", "I don't have information on that. Could you ask a different question?"''',
                         "filter": None,
                         "strictness": 3,
                         "top_n_documents": 5,
@@ -175,6 +142,6 @@ class Response:
 
     def __del__(self) -> None:
         """
-        Destructor for the Response class.
+        Clean up the object.
         """
         pass
