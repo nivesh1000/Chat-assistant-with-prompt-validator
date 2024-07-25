@@ -13,9 +13,7 @@ You can ask me anything, and I'll do my best to help.
 To end your session at any time, simply type "exit".
 How can I assist you today?''')
 
-user_input = ""
-
-while user_input.lower() != "exit":
+while True:
     user_input = input("Query: ")
     if user_input.lower() == "exit":
         break
