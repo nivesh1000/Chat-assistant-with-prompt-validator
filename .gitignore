@@ -1,4 +1,4 @@
 config/
 __pychache__/
 cmod/
-myenv/
+.myenv/
