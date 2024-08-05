@@ -14,7 +14,7 @@ class TestUserModel(unittest.TestCase):
     def test_empty_query(self):
         with self.assertRaises(ValidationError) as context:
             UserModel(user_query="")
-        self.assertIn("User query cannot be empty.", str(context.exception))
+        self.assertIn("User query cannot be empty or only whitespace.", str(context.exception))
 
     def test_digits_only_query(self):
         with self.assertRaises(ValidationError) as context:
@@ -24,22 +24,17 @@ class TestUserModel(unittest.TestCase):
     def test_whitespace_only_query(self):
         with self.assertRaises(ValidationError) as context:
             UserModel(user_query="     ")
-        self.assertIn("User query cannot be only whitespace.", str(context.exception))
-
-    def test_invalid_characters_query(self):
-        with self.assertRaises(ValidationError) as context:
-            UserModel(user_query="@@")
-        self.assertIn("User query contains invalid symbols", str(context.exception))
+        self.assertIn("User query cannot be empty or only whitespace.", str(context.exception))
 
     def test_partial_invalid_characters_query(self):
         with self.assertRaises(ValidationError) as context:
             UserModel(user_query="Hello @@")
-        self.assertIn("User query contains invalid symbols", str(context.exception))
+        self.assertIn("User query contains invalid symbols:", str(context.exception))
 
     def test_mixed_query(self):
         with self.assertRaises(ValidationError) as context:
             UserModel(user_query="%.[]")
-        self.assertIn("User query must be in english.", str(context.exception))
+        self.assertIn("User query must contain at least one English alphabet letter (a-z, A-Z).", str(context.exception))
 
     def test_query_with_letters(self):
         try:

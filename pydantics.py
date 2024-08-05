@@ -12,11 +12,10 @@ class UserModel(BaseModel):
             raise ValueError("User query cannot be only digits.")
         if re.match(r"^\s*$", query):
             raise ValueError("User query cannot be only whitespace.")
-        if not re.match(r"^[a-zA-Z0-9\s.,!?;'\"\[\]%&*|\\/`–—_-]*$", query):
-            invalid_characters = re.findall(r"[^\w\s.,!?;'\"\[\]%&*|\\/`–—_-]", query)
-            raise ValueError(f"User query contains invalid symbols: {invalid_characters}")
+        if not re.match(r"^[a-zA-Z0-9\s.,!?;'\"\[\]%&*|\\/`–—_-]+$", query):
+            raise ValueError(f"User query contains invalid symbols.")
         if not re.search(r"[a-zA-Z]", query):
-            raise ValueError("User query must be in english.")
+            raise ValueError("User query must contain an english alphabet (a-z, A-Z).")
         return query
 
 

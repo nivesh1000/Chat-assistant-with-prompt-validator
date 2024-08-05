@@ -1,7 +1,7 @@
 from enum import Enum
 from class_implementation import Response
 import re
-from pydantics import UserModel, ValidationError
+from test import UserModel, ValidationError
 
 class ModerationCategory(Enum):
     CATEGORY1 = "category1"
